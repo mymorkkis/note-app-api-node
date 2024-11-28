@@ -1,0 +1,21 @@
+services:
+  notes_app_node_db:
+    image: postgres:17.2-alpine3.20
+    container_name: notes_app_node_db
+    ports:
+      - ${POSTGRES_PORT}:${POSTGRES_PORT}
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - notes-app-node-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB
+      interval: 2s
+      timeout: 5s
+      retries: 5
+      start_period: 2s
+volumes:
+  notes-app-node-db-data:
+    driver: local
