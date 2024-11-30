@@ -10,12 +10,19 @@ export const User = Type.Object({
 
 export type UserType = Static<typeof User>;
 
-// TODO Split out a NoteCreate object?
-export const Note = Type.Object({
-  id: Type.Optional(Type.Integer()),
+export const NoteInput = Type.Object({
   title: Type.String(),
   body: Type.String(),
 });
+
+export type NoteInputType = Static<typeof NoteInput>;
+
+export const Note = Type.Intersect([
+  NoteInput,
+  Type.Object({
+    id: Type.Integer(),
+  }),
+]);
 
 export type NoteType = Static<typeof Note>;
 

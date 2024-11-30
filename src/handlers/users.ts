@@ -13,7 +13,7 @@ export const registerUser = async (
     const saltRounds = 10; // TODO Add mechanism to adjust this value
     const hashedPassword = await bcrypt.hash(password, saltRounds);
     const { rows }: { rows: { id: number }[] } = await request.server.pg.query(
-      "INSERT INTO users (email, password) VALUES ($1, $2) RETURNING id",
+      "INSERT INTO users (email, password) VALUES ($1, $2) RETURNING id;",
       [email, hashedPassword]
     );
     request.log.info(`Created user for ${email}, id=${rows[0].id}`);
@@ -34,7 +34,7 @@ export const loginUser = async (
 
   try {
     const { rows } = await request.server.pg.query(
-      "SELECT id, password FROM users WHERE email = $1",
+      "SELECT id, password FROM users WHERE email = $1;",
       [email]
     );
 
