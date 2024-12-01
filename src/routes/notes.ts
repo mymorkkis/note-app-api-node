@@ -4,6 +4,7 @@ import {
   Note,
   NoteInput,
   SuccessfullResponse,
+  type NoteInputType,
 } from "../types.js";
 import {
   createNote,
@@ -25,11 +26,12 @@ const plugin: FastifyPluginAsyncTypebox = async (fastify, _opts) => {
           },
         },
       },
+      onRequest: [fastify.authenticate],
     },
     getNotes
   );
 
-  fastify.get(
+  fastify.get<{ Params: { id: number } }>(
     "/notes/:id",
     {
       schema: {
@@ -39,11 +41,12 @@ const plugin: FastifyPluginAsyncTypebox = async (fastify, _opts) => {
           500: ErrorResponse,
         },
       },
+      onRequest: [fastify.authenticate],
     },
     getNote
   );
 
-  fastify.post(
+  fastify.post<{ Body: NoteInputType }>(
     "/notes",
     {
       schema: {
@@ -53,11 +56,12 @@ const plugin: FastifyPluginAsyncTypebox = async (fastify, _opts) => {
           500: ErrorResponse,
         },
       },
+      onRequest: [fastify.authenticate],
     },
     createNote
   );
 
-  fastify.put(
+  fastify.put<{ Params: { id: number }; Body: NoteInputType }>(
     "/notes/:id",
     {
       schema: {
@@ -68,11 +72,12 @@ const plugin: FastifyPluginAsyncTypebox = async (fastify, _opts) => {
           500: ErrorResponse,
         },
       },
+      onRequest: [fastify.authenticate],
     },
     updateNote
   );
 
-  fastify.delete(
+  fastify.delete<{ Params: { id: number } }>(
     "/notes/:id",
     {
       schema: {
@@ -81,6 +86,7 @@ const plugin: FastifyPluginAsyncTypebox = async (fastify, _opts) => {
           500: ErrorResponse,
         },
       },
+      onRequest: [fastify.authenticate],
     },
     deleteNote
   );

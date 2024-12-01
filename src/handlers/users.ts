@@ -52,6 +52,6 @@ export const loginUser = async (
     reply.status(404).send({ error: "Invalid email/password combination" });
   }
 
-  const token = request.server.jwt.sign({ sub: userId });
-  reply.status(200).send({ token });
+  const accessToken = request.server.jwt.sign({ id: userId });
+  reply.status(200).send({ accessToken });
 };

@@ -8,7 +8,7 @@ export const getNotes = async (
   try {
     const { rows }: { rows: NoteType[] } = await request.server.pg.query(
       "SELECT id, title, body FROM notes WHERE user_id = $1;",
-      [request.userId]
+      [request.user.id]
     );
 
     reply.status(200).send(rows);
@@ -26,7 +26,7 @@ export const getNote = async (
   try {
     const { rows }: { rows: NoteType[] } = await request.server.pg.query(
       "SELECT id, title, body FROM notes WHERE id = $1 AND user_id = $2;",
-      [id, request.userId]
+      [id, request.user.id]
     );
 
     if (rows.length === 0) {
@@ -50,7 +50,7 @@ export const createNote = async (
   try {
     const { rows }: { rows: { id: number }[] } = await request.server.pg.query(
       "INSERT INTO notes (title, body, user_id) VALUES ($1, $2, $3) RETURNING id;",
-      [title, body, request.userId]
+      [title, body, request.user.id]
     );
 
     const id = rows[0].id;
@@ -72,7 +72,7 @@ export const updateNote = async (
     const { rowCount }: { rowCount: number | null } =
       await request.server.pg.query(
         "UPDATE notes SET title=$1, body=$2 WHERE id = $3 AND user_id = $4;",
-        [title, body, id, request.userId]
+        [title, body, id, request.user.id]
       );
 
     if (rowCount === 1) {
@@ -96,7 +96,7 @@ export const deleteNote = async (
     const { rowCount }: { rowCount: number | null } =
       await request.server.pg.query(
         "DELETE FROM notes WHERE id = $1 AND user_id = $2;",
-        [id, request.userId]
+        [id, request.user.id]
       );
 
     if (rowCount === 1) {

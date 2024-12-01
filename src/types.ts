@@ -35,5 +35,5 @@ export const ErrorResponse = Type.Object({
 });
 
 export const TokenCreatedResponse = Type.Object({
-  token: Type.String(),
+  accessToken: Type.String(),
 });

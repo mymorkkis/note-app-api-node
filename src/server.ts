@@ -15,15 +15,18 @@ import path from "node:path";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 declare module "fastify" {
-  interface FastifyRequest {
-    userId: number;
+  interface FastifyInstance {
+    authenticate: (
+      request: FastifyRequest,
+      reply: FastifyReply
+    ) => Promise<void>;
   }
 }
 
 declare module "@fastify/jwt" {
   interface FastifyJWT {
     payload: {
-      sub: number;
+      id: number;
     };
   }
 }
@@ -59,25 +62,17 @@ const buildServer = async () => {
     secret: config.JWT_SECRET,
   });
   fastify.register(swagger);
-  fastify.register(swaggerUI);
+  fastify.register(swaggerUI, {
+    routePrefix: "/docs",
+  });
   fastify.register(autoload, {
     dir: path.join(__dirname, "routes"),
   });
-
-  fastify.addHook(
-    "onRequest",
+  fastify.decorate(
+    "authenticate",
     async (request: FastifyRequest, reply: FastifyReply) => {
-      // TODO Improve setting routes as public
-      if (
-        ["/register", "/login"].includes(request.url) ||
-        request.url.includes("/documentation")
-      ) {
-        return;
-      }
-
       try {
         await request.jwtVerify();
-        request.userId = request.user.sub;
       } catch (error) {
         request.log.error(error);
         reply.status(401).send({ error: "Unauthorized" });
