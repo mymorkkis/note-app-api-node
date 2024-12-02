@@ -1,6 +1,12 @@
 import bcrypt from "bcrypt";
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { type UserType } from "../types.js";
+import {
+  type DBRowCountType,
+  type RefreshTokenType,
+  type UserType,
+} from "../types.js";
+import { nowInSeconds } from "../utils.js";
+import config from "../config.js";
 
 export const registerUser = async (
   request: FastifyRequest<{ Body: UserType }>,
@@ -10,8 +16,7 @@ export const registerUser = async (
   // TODO Handle user already registered
 
   try {
-    const saltRounds = 10; // TODO Add mechanism to adjust this value
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
+    const hashedPassword = await bcrypt.hash(password, config.SALT_ROUNDS);
     const { rows }: { rows: { id: number }[] } = await request.server.pg.query(
       "INSERT INTO users (email, password) VALUES ($1, $2) RETURNING id;",
       [email, hashedPassword]
@@ -29,7 +34,6 @@ export const loginUser = async (
   reply: FastifyReply
 ) => {
   const { email, password } = request.body;
-  let userId;
   // TODO implement account lockout if too many failed login attempts
 
   try {
@@ -38,20 +42,118 @@ export const loginUser = async (
       [email]
     );
 
-    if (rows.length === 1) {
-      if (await bcrypt.compare(password, rows[0].password)) {
-        userId = rows[0].id;
-      }
+    if (
+      rows.length !== 1 ||
+      !(await bcrypt.compare(password, rows[0].password))
+    ) {
+      return reply.status(404).send({ error: "Invalid email or password" });
     }
+
+    const userId = rows[0].id;
+    await createAndSendNewUserTokens(request, reply, userId);
   } catch (error) {
     request.log.error(error);
     reply.status(500).send({ error: "Internal Server Error" });
   }
+};
 
-  if (!userId) {
-    reply.status(404).send({ error: "Invalid email/password combination" });
+export const refreshToken = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  try {
+    const { refreshToken } = request.cookies;
+    if (!refreshToken) {
+      return reply.status(401).send({ error: "No refresh token in cookies" });
+    }
+
+    const { id: userId, exp: tokenExpiry } = request.server.jwt.decode(
+      refreshToken
+    ) as { id: number; exp: number };
+
+    const { rows }: { rows: RefreshTokenType[] } =
+      await request.server.pg.query(
+        "SELECT id, token FROM refresh_tokens WHERE user_id = $1 AND expires_at = $2;",
+        [userId, tokenExpiry]
+      );
+
+    const validToken =
+      rows.length === 1 && (await bcrypt.compare(refreshToken, rows[0].token));
+
+    if (!validToken) {
+      // Compromised session, user will need to log in again on any device
+      return await deleteAllRefreshTokensForUser(request, reply, userId);
+    }
+
+    await request.server.pg.query(
+      "DELETE FROM refresh_tokens WHERE user_id = $1 AND expires_at = $2",
+      [userId, tokenExpiry]
+    );
+
+    if (nowInSeconds() >= tokenExpiry) {
+      request.log.info(`deleted expired refresh token for user ${userId}`);
+
+      return reply
+        .status(401)
+        .send({ error: "Token expired, please log in again" });
+    }
+
+    request.log.info(`rotating tokens for user ${userId}`);
+    await createAndSendNewUserTokens(request, reply, userId);
+  } catch (error) {
+    request.log.error(error);
+    reply.status(500).send({ error: "Internal Server Error" });
   }
+};
 
-  const accessToken = request.server.jwt.sign({ id: userId });
-  reply.status(200).send({ accessToken });
+const createAndSendNewUserTokens = async (
+  request: FastifyRequest,
+  reply: FastifyReply,
+  userId: number
+) => {
+  const accessToken = request.server.jwt.sign(
+    { id: userId },
+    { expiresIn: "15m" }
+  );
+  const sevenDaysTime = 7 * 24 * 60 * 60;
+  const refreshToken = request.server.jwt.sign(
+    { id: userId },
+    { expiresIn: sevenDaysTime }
+  );
+
+  const hashedRefreshToken = await bcrypt.hash(
+    refreshToken,
+    config.SALT_ROUNDS
+  );
+  await request.server.pg.query(
+    "INSERT INTO refresh_tokens (user_id, token, expires_at) VALUES ($1, $2, $3);",
+    [userId, hashedRefreshToken, nowInSeconds() + sevenDaysTime]
+  );
+
+  reply
+    .setCookie("refreshToken", refreshToken, {
+      secure: true,
+      httpOnly: true,
+      sameSite: true,
+    })
+    .status(200)
+    .send({ accessToken });
+};
+
+const deleteAllRefreshTokensForUser = async (
+  request: FastifyRequest,
+  reply: FastifyReply,
+  userId: number
+) => {
+  const { rowCount }: DBRowCountType = await request.server.pg.query(
+    "DELETE FROM refresh_tokens WHERE user_id = $1",
+    [userId]
+  );
+  request.log.warn(
+    `Invalid refresh token used for user ${userId}, deleted ${rowCount} tokens`
+  );
+
+  return reply
+    .status(401)
+    .send({ error: "Invalid token, please log in again" });
 };

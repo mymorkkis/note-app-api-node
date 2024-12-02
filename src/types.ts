@@ -26,6 +26,10 @@ export const Note = Type.Intersect([
 
 export type NoteType = Static<typeof Note>;
 
+export type RefreshTokenType = { id: number; token: string };
+
+export type DBRowCountType = { rowCount: number | null };
+
 export const SuccessfullResponse = Type.Object({
   message: Type.String(),
 });

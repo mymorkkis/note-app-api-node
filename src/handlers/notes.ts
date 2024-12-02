@@ -1,5 +1,9 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
-import { type NoteInputType, type NoteType } from "../types.js";
+import {
+  type DBRowCountType,
+  type NoteInputType,
+  type NoteType,
+} from "../types.js";
 
 export const getNotes = async (
   request: FastifyRequest,
@@ -69,11 +73,10 @@ export const updateNote = async (
   const { title, body } = request.body;
 
   try {
-    const { rowCount }: { rowCount: number | null } =
-      await request.server.pg.query(
-        "UPDATE notes SET title=$1, body=$2 WHERE id = $3 AND user_id = $4;",
-        [title, body, id, request.user.id]
-      );
+    const { rowCount }: DBRowCountType = await request.server.pg.query(
+      "UPDATE notes SET title=$1, body=$2 WHERE id = $3 AND user_id = $4;",
+      [title, body, id, request.user.id]
+    );
 
     if (rowCount === 1) {
       reply.status(200).send({ id, title, body });
@@ -93,11 +96,10 @@ export const deleteNote = async (
   const { id } = request.params;
 
   try {
-    const { rowCount }: { rowCount: number | null } =
-      await request.server.pg.query(
-        "DELETE FROM notes WHERE id = $1 AND user_id = $2;",
-        [id, request.user.id]
-      );
+    const { rowCount }: DBRowCountType = await request.server.pg.query(
+      "DELETE FROM notes WHERE id = $1 AND user_id = $2;",
+      [id, request.user.id]
+    );
 
     if (rowCount === 1) {
       reply.status(200).send({ message: "Note deleted successfully" });

@@ -11,6 +11,7 @@ import Fastify, {
 import config from "./config.js";
 import { fileURLToPath } from "url";
 import path from "node:path";
+import fastifyCookie from "@fastify/cookie";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -60,7 +61,14 @@ const buildServer = async () => {
   });
   fastify.register(fastifyJwt, {
     secret: config.JWT_SECRET,
+    cookie: {
+      cookieName: "refreshToken",
+      signed: true,
+    }
   });
+  fastify.register(fastifyCookie, {
+    secret: config.COOKIE_SECRET,
+  })
   fastify.register(swagger);
   fastify.register(swaggerUI, {
     routePrefix: "/docs",
@@ -68,6 +76,7 @@ const buildServer = async () => {
   fastify.register(autoload, {
     dir: path.join(__dirname, "routes"),
   });
+
   fastify.decorate(
     "authenticate",
     async (request: FastifyRequest, reply: FastifyReply) => {

@@ -5,7 +5,7 @@ import {
   TokenCreatedResponse,
   User,
 } from "../types.js";
-import { loginUser, registerUser } from "../handlers/users.js";
+import { loginUser, refreshToken, registerUser } from "../handlers/users.js";
 
 const plugin: FastifyPluginAsyncTypebox = async (fastify, _opts) => {
   fastify.post(
@@ -35,6 +35,19 @@ const plugin: FastifyPluginAsyncTypebox = async (fastify, _opts) => {
       },
     },
     loginUser
+  );
+
+  fastify.get(
+    "/refreshToken",
+    {
+      schema: {
+        response: {
+          200: TokenCreatedResponse,
+          500: ErrorResponse,
+        },
+      },
+    },
+    refreshToken
   );
 };
 
