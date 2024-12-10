@@ -64,11 +64,11 @@ const buildServer = async () => {
     cookie: {
       cookieName: "refreshToken",
       signed: true,
-    }
+    },
   });
   fastify.register(fastifyCookie, {
     secret: config.COOKIE_SECRET,
-  })
+  });
   fastify.register(swagger);
   fastify.register(swaggerUI, {
     routePrefix: "/docs",

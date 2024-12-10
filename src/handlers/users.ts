@@ -13,9 +13,16 @@ export const registerUser = async (
   reply: FastifyReply
 ) => {
   const { email, password } = request.body;
-  // TODO Handle user already registered
 
   try {
+    const { rowCount }: DBRowCountType = await request.server.pg.query(
+      "SELECT id FROM users WHERE email = $1",
+      [email]
+    );
+    if (rowCount !== 0) {
+      reply.status(409).send({ error: "Already registered" });
+    }
+
     const hashedPassword = await bcrypt.hash(password, config.SALT_ROUNDS);
     const { rows }: { rows: { id: number }[] } = await request.server.pg.query(
       "INSERT INTO users (email, password) VALUES ($1, $2) RETURNING id;",
@@ -29,6 +36,7 @@ export const registerUser = async (
   }
 };
 
+// TODO implement logout
 export const loginUser = async (
   request: FastifyRequest<{ Body: UserType }>,
   reply: FastifyReply
@@ -115,19 +123,21 @@ const createAndSendNewUserTokens = async (
     { id: userId },
     { expiresIn: "15m" }
   );
-  const sevenDaysTime = 7 * 24 * 60 * 60;
   const refreshToken = request.server.jwt.sign(
     { id: userId },
-    { expiresIn: sevenDaysTime }
+    { expiresIn: "7d" }
   );
-
+  const { exp: tokenExpiry } = request.server.jwt.decode(refreshToken) as {
+    exp: number;
+  };
   const hashedRefreshToken = await bcrypt.hash(
     refreshToken,
     config.SALT_ROUNDS
   );
+
   await request.server.pg.query(
     "INSERT INTO refresh_tokens (user_id, token, expires_at) VALUES ($1, $2, $3);",
-    [userId, hashedRefreshToken, nowInSeconds() + sevenDaysTime]
+    [userId, hashedRefreshToken, tokenExpiry]
   );
 
   reply

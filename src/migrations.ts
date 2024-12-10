@@ -6,7 +6,7 @@ import config from "./config.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-async function migrate() {
+const migrate = async () => {
   let result: Postgrator.Migration[] = [];
 
   try {
@@ -46,6 +46,6 @@ async function migrate() {
   }
 
   process.exit(0);
-}
+};
 
-migrate();
+await migrate();
