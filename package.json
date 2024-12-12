@@ -6,7 +6,7 @@
     "build": "npx tsc",
     "dev": "tsx --env-file=.env --watch src/main.ts",
     "migrations": "tsx --env-file=.env src/migrations.ts",
-    "test": "NODE_ENV=test POSTGRES_PORT=5433 tsx --env-file=.env --test --watch"
+    "test": "NODE_ENV=test POSTGRES_PORT=5433 tsx --env-file=.env --test"
   },
   "keywords": [],
   "author": "",
