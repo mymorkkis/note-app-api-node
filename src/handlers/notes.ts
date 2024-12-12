@@ -52,13 +52,13 @@ export const createNote = async (
   const { title, body } = request.body;
 
   try {
-    const { rows }: { rows: { id: number }[] } = await request.server.pg.query(
-      "INSERT INTO notes (title, body, user_id) VALUES ($1, $2, $3) RETURNING id;",
+    const { rows }: { rows: NoteType[] } = await request.server.pg.query(
+      "INSERT INTO notes (title, body, user_id) VALUES ($1, $2, $3) RETURNING id, title, body;",
       [title, body, request.user.id]
     );
 
-    const id = rows[0].id;
-    reply.status(201).send({ id, title, body });
+    const createdNote = rows[0];
+    reply.status(201).send(createdNote);
   } catch (error) {
     request.log.error(error);
     reply.status(500).send({ error: "Internal Server Error" });
@@ -73,16 +73,17 @@ export const updateNote = async (
   const { title, body } = request.body;
 
   try {
-    const { rowCount }: DBRowCountType = await request.server.pg.query(
-      "UPDATE notes SET title=$1, body=$2 WHERE id = $3 AND user_id = $4;",
+    const { rows }: { rows: NoteType[] } = await request.server.pg.query(
+      "UPDATE notes SET title=$1, body=$2 WHERE id = $3 AND user_id = $4 RETURNING id, title, body;",
       [title, body, id, request.user.id]
     );
 
-    if (rowCount === 1) {
-      reply.status(200).send({ id, title, body });
-    } else {
+    if (rows.length === 0) {
       reply.status(404).send({ error: "Note not found" });
     }
+
+    const updatedNote = rows[0];
+    reply.status(200).send(updatedNote);
   } catch (error) {
     request.log.error(error);
     reply.status(500).send({ error: "Internal Server Error" });

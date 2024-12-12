@@ -20,7 +20,7 @@ services:
     image: postgres:17.2-alpine3.20
     container_name: notes_app_node_test_db
     ports:
-      - ${POSTGRES_PORT}:${POSTGRES_PORT}
+      - 5433:${POSTGRES_PORT}
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
