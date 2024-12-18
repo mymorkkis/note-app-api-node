@@ -12,17 +12,12 @@ export const getNotes = async (
 ) => {
   const { limit, offset } = request.query;
 
-  try {
-    const { rows }: { rows: NoteType[] } = await request.server.pg.query(
-      "SELECT id, title, body FROM notes WHERE user_id = $1 ORDER BY id LIMIT $2 OFFSET $3;",
-      [request.user.id, limit, offset]
-    );
+  const { rows }: { rows: NoteType[] } = await request.server.pg.query(
+    "SELECT id, title, body FROM notes WHERE user_id = $1 ORDER BY id LIMIT $2 OFFSET $3;",
+    [request.user.id, limit, offset]
+  );
 
-    reply.status(200).send(rows);
-  } catch (error) {
-    request.log.error(error);
-    reply.status(500).send({ error: "Internal Server Error" });
-  }
+  reply.status(200).send(rows);
 };
 
 export const getNote = async (
@@ -30,22 +25,17 @@ export const getNote = async (
   reply: FastifyReply
 ) => {
   const { id } = request.params;
-  try {
-    const { rows }: { rows: NoteType[] } = await request.server.pg.query(
-      "SELECT id, title, body FROM notes WHERE id = $1 AND user_id = $2;",
-      [id, request.user.id]
-    );
+  const { rows }: { rows: NoteType[] } = await request.server.pg.query(
+    "SELECT id, title, body FROM notes WHERE id = $1 AND user_id = $2;",
+    [id, request.user.id]
+  );
 
-    if (rows.length === 0) {
-      reply.status(404).send({ error: "Note not found" });
-    }
-
-    const note = rows[0];
-    reply.status(200).send(note);
-  } catch (error) {
-    request.log.error(error);
-    reply.status(500).send({ error: "Internal Server Error" });
+  if (rows.length === 0) {
+    reply.status(404).send({ error: "Note not found" });
   }
+
+  const note = rows[0];
+  reply.status(200).send(note);
 };
 
 export const createNote = async (
@@ -54,18 +44,13 @@ export const createNote = async (
 ) => {
   const { title, body } = request.body;
 
-  try {
-    const { rows }: { rows: NoteType[] } = await request.server.pg.query(
-      "INSERT INTO notes (title, body, user_id) VALUES ($1, $2, $3) RETURNING id, title, body;",
-      [title, body, request.user.id]
-    );
+  const { rows }: { rows: NoteType[] } = await request.server.pg.query(
+    "INSERT INTO notes (title, body, user_id) VALUES ($1, $2, $3) RETURNING id, title, body;",
+    [title, body, request.user.id]
+  );
 
-    const createdNote = rows[0];
-    reply.status(201).send(createdNote);
-  } catch (error) {
-    request.log.error(error);
-    reply.status(500).send({ error: "Internal Server Error" });
-  }
+  const createdNote = rows[0];
+  reply.status(201).send(createdNote);
 };
 
 export const updateNote = async (
@@ -75,22 +60,17 @@ export const updateNote = async (
   const { id } = request.params;
   const { title, body } = request.body;
 
-  try {
-    const { rows }: { rows: NoteType[] } = await request.server.pg.query(
-      "UPDATE notes SET title=$1, body=$2 WHERE id = $3 AND user_id = $4 RETURNING id, title, body;",
-      [title, body, id, request.user.id]
-    );
+  const { rows }: { rows: NoteType[] } = await request.server.pg.query(
+    "UPDATE notes SET title=$1, body=$2 WHERE id = $3 AND user_id = $4 RETURNING id, title, body;",
+    [title, body, id, request.user.id]
+  );
 
-    if (rows.length === 0) {
-      reply.status(404).send({ error: "Note not found" });
-    }
-
-    const updatedNote = rows[0];
-    reply.status(200).send(updatedNote);
-  } catch (error) {
-    request.log.error(error);
-    reply.status(500).send({ error: "Internal Server Error" });
+  if (rows.length === 0) {
+    reply.status(404).send({ error: "Note not found" });
   }
+
+  const updatedNote = rows[0];
+  reply.status(200).send(updatedNote);
 };
 
 export const deleteNote = async (
@@ -99,19 +79,14 @@ export const deleteNote = async (
 ) => {
   const { id } = request.params;
 
-  try {
-    const { rowCount }: DBRowCountType = await request.server.pg.query(
-      "DELETE FROM notes WHERE id = $1 AND user_id = $2;",
-      [id, request.user.id]
-    );
+  const { rowCount }: DBRowCountType = await request.server.pg.query(
+    "DELETE FROM notes WHERE id = $1 AND user_id = $2;",
+    [id, request.user.id]
+  );
 
-    if (rowCount === 1) {
-      reply.status(200).send({ message: "Note deleted successfully" });
-    } else {
-      reply.status(404).send({ error: "Note not found" });
-    }
-  } catch (error) {
-    request.log.error(error);
-    reply.status(500).send({ error: "Internal Server Error" });
+  if (rowCount === 1) {
+    reply.status(200).send({ message: "Note deleted successfully" });
+  } else {
+    reply.status(404).send({ error: "Note not found" });
   }
 };
