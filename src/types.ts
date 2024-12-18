@@ -1,5 +1,16 @@
 import { Type, type Static } from "@sinclair/typebox";
 
+export const Pagination = Type.Object({
+  offset: Type.Integer({ default: 0 }),
+  limit: Type.Integer({
+    default: 25,
+    maximum: 50, // TODO Why does this not display in swagger docs?
+    description: "The number of items per page (max 50)",
+  }),
+});
+
+export type PaginationType = Static<typeof Pagination>;
+
 export const User = Type.Object({
   email: Type.String({ format: "email" }),
   password: Type.String({

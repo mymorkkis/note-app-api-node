@@ -3,8 +3,10 @@ import {
   ErrorResponse,
   Note,
   NoteInput,
+  Pagination,
   SuccessfullResponse,
   type NoteInputType,
+  type PaginationType,
 } from "../types.js";
 import {
   createNote,
@@ -15,10 +17,11 @@ import {
 } from "../handlers/notes.js";
 
 const plugin: FastifyPluginAsyncTypebox = async (fastify, _opts) => {
-  fastify.get(
+  fastify.get<{ Querystring: PaginationType }>(
     "/notes",
     {
       schema: {
+        querystring: Pagination,
         response: {
           200: {
             type: "array",

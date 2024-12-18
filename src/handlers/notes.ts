@@ -3,16 +3,19 @@ import {
   type DBRowCountType,
   type NoteInputType,
   type NoteType,
+  type PaginationType,
 } from "../types.js";
 
 export const getNotes = async (
-  request: FastifyRequest,
+  request: FastifyRequest<{ Querystring: PaginationType }>,
   reply: FastifyReply
 ) => {
+  const { limit, offset } = request.query;
+
   try {
     const { rows }: { rows: NoteType[] } = await request.server.pg.query(
-      "SELECT id, title, body FROM notes WHERE user_id = $1;",
-      [request.user.id]
+      "SELECT id, title, body FROM notes WHERE user_id = $1 ORDER BY id LIMIT $2 OFFSET $3;",
+      [request.user.id, limit, offset]
     );
 
     reply.status(200).send(rows);

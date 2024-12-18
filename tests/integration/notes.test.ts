@@ -24,19 +24,17 @@ describe("notes routes", async () => {
   });
 
   describe("GET /notes", async () => {
-    await it("fetches all notes for user", async () => {
-      await testApp.pg.query(
-        "INSERT INTO notes (title, body, user_id) VALUES ($1, $2, $3);",
-        ["note1", "first body", userId]
-      );
-      await testApp.pg.query(
-        "INSERT INTO notes (title, body, user_id) VALUES ($1, $2, $3);",
-        ["note2", "second body", userId]
-      );
+    await it("fetches a paginated list of notes for user", async () => {
+      for (let i = 1; i <= 5; i++) {
+        await testApp.pg.query(
+          "INSERT INTO notes (title, body, user_id) VALUES ($1, $2, $3);",
+          [`note ${i}`, "some body", userId]
+        );
+      }
 
       const response = await testApp.inject({
         method: "GET",
-        url: "/notes",
+        url: "/notes?offset=2&limit=2",
         headers: {
           authorization: `Bearer ${accessToken}`,
         },
@@ -47,17 +45,50 @@ describe("notes routes", async () => {
 
       assert.deepEqual(notes, [
         {
-          id: 1,
-          title: "note1",
-          body: "first body",
+          id: 3,
+          title: "note 3",
+          body: "some body",
         },
         {
-          id: 2,
-          title: "note2",
-          body: "second body",
+          id: 4,
+          title: "note 4",
+          body: "some body",
         },
       ]);
     });
+  });
+
+  await it("defaults to the first results if no pagination args provided", async () => {
+    for (let i = 1; i <= 5; i++) {
+      await testApp.pg.query(
+        "INSERT INTO notes (title, body, user_id) VALUES ($1, $2, $3);",
+        [`note ${i}`, "some body", userId]
+      );
+    }
+
+    const response = await testApp.inject({
+      method: "GET",
+      url: "/notes",
+      headers: {
+        authorization: `Bearer ${accessToken}`,
+      },
+    });
+    assert.equal(response.statusCode, 200);
+
+    const notes = response.json();
+
+    assert.deepEqual(notes.length, 5);
+  });
+
+  await it("blocks requesting more data than the app specified pagination limit", async () => {
+    const response = await testApp.inject({
+      method: "GET",
+      url: "/notes?limit=999",
+      headers: {
+        authorization: `Bearer ${accessToken}`,
+      },
+    });
+    assert.equal(response.statusCode, 400);
   });
 
   describe("GET /notes/:id", () => {

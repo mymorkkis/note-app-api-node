@@ -1,7 +1,7 @@
 dev:
 	docker compose up -d notes_app_node_db --wait --timeout 10
 	npm run migrations
-	npm run dev ; docker compose down notes_app_node_db
+	npm run dev ; docker compose stop notes_app_node_db
 
 test:
 	docker compose up -d notes_app_node_test_db --wait --timeout 10
